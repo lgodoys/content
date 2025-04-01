@@ -23,7 +23,7 @@
 		"CONTENT": "${containerWorkspaceFolder}",
 		"DEMISTO_SDK_CONTENT_PATH": "${containerWorkspaceFolder}",
 		"PYTHONPATH": "${containerWorkspaceFolder}:${containerWorkspaceFolder}/Packs/Base/Scripts/CommonServerPython/:${containerWorkspaceFolder}/Packs/Base/Scripts/CommonServerUserPython/:${containerWorkspaceFolder}/Tests/demistomock/:${containerEnv:PYTHONPATH}",
-		"MYPYPATH": "${containerWorkspaceFolder}:${containerWorkspaceFolder}/Packs/Base/Scripts/CommonServerPython/:${containerWorkspaceFolder}/Packs/Base/Scripts/CommonServerUserPython/:${containerWorkspaceFolder}/Tests/demistomock/:${containerEnv:PYTHONPATH}",
+		"MYPYPATH": "${containerWorkspaceFolder}:${containerWorkspaceFolder}/Packs/Base/Scripts/CommonServerPython/:${containerWorkspaceFolder}/Packs/Base/Scripts/CommonServerUserPython/:${containerWorkspaceFolder}/Tests/demistomock/:${containerEnv:PYTHONPATH}"
 	},
 	"customizations": {
 		"vscode": {
@@ -42,7 +42,7 @@
 					"toversion",
 					"marketplacev",
 					"ciac",
-					"whois",
+					"whois"
 				]
 			},
 			"extensions": [
