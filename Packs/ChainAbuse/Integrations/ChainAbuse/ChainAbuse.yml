@@ -1,6 +1,6 @@
 category: Data Enrichment & Threat Intelligence
 commonfields:
-  id: BitcoinAbuse
+  id: ChainAbuse
   version: -1
 configuration:
 - display: Fetch indicators
@@ -98,9 +98,9 @@ configuration:
   name: feedTags
   type: 0
   required: false
-description: Deprecated. No available replacement.
-display: BitcoinAbuse Feed (Deprecated)
-name: BitcoinAbuse
+description: 
+display: ChainAbuse
+name: ChainAbuse
 script:
   commands:
   - arguments:
@@ -126,16 +126,16 @@ script:
     - description: Description of the abuse type. The "abuse_type_other" field is required when the value of the "abuse_type" field is "other".
       name: abuse_type_other
     description: Reports an abuser to Bitcoin Abuse service. 'abuse_type_other' field is required when 'abuse_type' is other
-    name: bitcoinabuse-report-address
-    deprecated: true
+    name: chainabuse-report-address
+    deprecated: false
   - arguments:
     - defaultValue: "50"
       description: The maximum number of results to return.
       name: limit
     description: Gets indicators from the feed.
-    name: bitcoinabuse-get-indicators
-    deprecated: true
-  dockerimage: demisto/python3:3.10.12.63474
+    name: chainabuse-get-report
+    deprecated: false
+  dockerimage: demisto/python3
   feed: true
   isFetchSamples: true
   script: ''
@@ -143,5 +143,5 @@ script:
   type: python
 fromversion: 5.5.0
 tests:
-- No tests (deprecated)
-deprecated: true
+- No tests
+deprecated: false

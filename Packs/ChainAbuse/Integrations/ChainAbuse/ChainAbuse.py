@@ -159,7 +159,7 @@ def test_module_command(cCoin_client: ChainAbuseClient):
     return "ok"
 
 
-def chainabuse_get_report(cCoin_client: ChainAbuseClient, args: Dict):
+def chainabuse_get_report_command(cCoin_client: ChainAbuseClient, args: Dict):
     """
     Wrapper for retrieving indicators from the feed to the war-room.
 
@@ -200,7 +200,7 @@ def main() -> None:
             return_results(chainabuse_report_command(cCoin_client, demisto.args()))
 
         elif command == 'chainabuse-get-report':
-            return_results(chainabuse_get_report(cCoin_client, demisto.args()))
+            return_results(chainabuse_get_report_command(cCoin_client, demisto.args()))
 
     # Log exceptions and return errors
     except Exception as e:

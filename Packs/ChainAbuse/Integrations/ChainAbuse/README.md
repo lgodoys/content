@@ -1,5 +1,5 @@
-BitcoinAbuse.com is a public database of bitcoin addresses used by hackers and criminals.
-Supported Cortex XSOAR versions: 5.5.0 and later.
+ChainAbuse.com is a public database of crypto chains addresses used by hackers and criminals.
+Supported Cortex XSOAR versions: 6.14.0 and later.
 
 ## Get Your API Key
 
@@ -12,7 +12,7 @@ The API key is free and can be achieved by doing the following:
 3. After your account have been set, and you have verified your account, go to Settings, and click on "API" section.
 4. Copy and save this API key in a safe place. This API key will be permanently hide in case you need to recover it.
 
-## Configure BitcoinAbuse in Cortex
+## Configure ChainAbuse in Cortex
 
 
 | **Parameter** | **Description** | **Required** |
@@ -53,14 +53,14 @@ There is no context output for this command.
 
 #### Command Example
 
-```!bitcoinabuse-report-address address=abcde12345 abuser=abuser@abuse.net abuse_type="bitcoin tumbler" description="this is a description of the abuse"```
+```!chainabuse-report-address address=abcde12345 abuser=abuser@abuse.net abuse_type="bitcoin tumbler" description="this is a description of the abuse"```
 
 
 #### Human Readable Output
 
->Bitcoin address abcde12345 by abuse bitcoin user abuser@abuse.net was reported to BitcoinAbuse API
+>Bitcoin address abcde12345 by abuse bitcoin user abuser@abuse.net was reported to ChainAbuse API
 
-### bitcoinabuse-get-indicators
+### chainabuse-get-report
 
 ***
 Gets indicators from the feed.
@@ -68,7 +68,7 @@ Gets indicators from the feed.
 
 #### Base Command
 
-`bitcoinabuse-get-indicators`
+`chainabuse-get-report`
 
 #### Input
 
@@ -82,8 +82,6 @@ Gets indicators from the feed.
 There is no context output for this command.
 
 #### Command Example
-
-```!bitcoinabuse-get-indicators limit=1```
 
 #### Context Example
 

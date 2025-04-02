@@ -1,6 +1,6 @@
-id: BitcoinAbuse-test
+id: ChainAbuse-test
 version: -1
-name: BitcoinAbuse-test
+name: ChainAbuse-test
 starttaskid: "0"
 tasks:
   "0":
@@ -75,7 +75,7 @@ tasks:
       version: -1
       name: Bitcoin Report Address
       description: Reports an abuser to Bitcoin Abuse service. 'abuse_type_other' field is required when 'abuse_type' is other
-      script: '|||bitcoinabuse-report-address'
+      script: '|||chainabuse-report-address'
       type: regular
       iscommand: true
       brand: ""
@@ -139,7 +139,7 @@ tasks:
       version: -1
       name: Bitcoin Get Indicators
       description: Gets indicators from the feed.
-      script: '|||bitcoinabuse-get-indicators'
+      script: '|||chainabuse-get-report'
       type: regular
       iscommand: true
       brand: ""
