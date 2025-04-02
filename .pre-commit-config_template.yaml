@@ -204,7 +204,6 @@ repos:
     - Packs
     - Tests
     - Utils
-    exclude: Packs/*/ReleaseNotes/*.md
 
   - id: validate-content-paths
     name: validate-content-paths
