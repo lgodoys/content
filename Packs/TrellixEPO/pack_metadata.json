@@ -1,0 +1,24 @@
+{
+    "name": "Trellix ePO-SaaS",
+    "description": "Trellix ePO-SaaS (formerly McAfee ePO Cloud) is a multi-tenant, cloud-native management platform hosted on AWS that centralizes endpoint security management. It enables IT teams to manage Trellix Endpoint Security, Trellix Endpoint Detection and Response, and third-party products via a single",
+    "support": "developer",
+    "currentVersion": "1.0.0",
+    "author": "Leonardo Godoy",
+    "url": "",
+    "email": "leonardo@lgodoys.dev",
+    "categories": [
+        "Endpoint"
+    ],
+    "tags": [],
+    "useCases": [],
+    "keywords": [],
+    "marketplaces": [
+        "xsoar",
+        "marketplacev2"
+    ],
+    "firstCreated": "2026-01-24T02:37:40Z",
+    "devEmail": [
+        "leonardo@lgodoys.dev"
+    ],
+    "githubUser": []
+}
