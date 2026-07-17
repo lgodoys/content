@@ -523,7 +523,7 @@ def get_events(si, args):
     if (args.get("start_date") and not time.beginTime) or (args.get("end_date") and not time.endTime):  # type: ignore
         raise Exception("Dates given in a wrong format.")
     by_user_name = vim.event.EventFilterSpec.ByUsername()  # type: ignore
-    by_user_name.userList = args.get("user", "").split(",") or None  # type: ignore[assignment]
+    by_user_name.userList = argToList(args.get("user")) or None  # type: ignore[assignment]
     filter = vim.event.EventFilterSpec.ByEntity(entity=vm, recursion="self")  # type: ignore
     ids = args.get("event-type").split(",")
 
@@ -592,7 +592,7 @@ def change_nic_state(si, args):  # pragma: no cover
         connectable.connected = False
         connectable.startConnected = False
     else:
-        connectable = virtual_nic_device.connectable
+        connectable = virtual_nic_device.connectable  # type: ignore[assignment]
     virtual_nic_spec.device.connectable = connectable
     dev_changes = []
     dev_changes.append(virtual_nic_spec)

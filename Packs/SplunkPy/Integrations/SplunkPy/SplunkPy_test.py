@@ -1294,6 +1294,10 @@ def test_get_drilldown_timeframe(notable_data, raw, earliest, latest, mocker):
         ("field", {"field": "1"}, "field", "1"),
         ("field|s", {"_raw": "field=1, value=2"}, "field", "1"),
         ("x", {"y": "2"}, "", ""),
+        # A raw field that is a substring of another field must not collide
+        ("src_ip", {"src": "host1", "src_ip": "1.2.3.4"}, "src_ip", "1.2.3.4"),
+        ("src_ip|s", {"src": "host1", "src_ip": "1.2.3.4"}, "src_ip", "1.2.3.4"),
+        ("src_ip", {"_raw": "src=host1, src_ip=1.2.3.4"}, "src_ip", "1.2.3.4"),
     ],
 )
 def test_get_notable_field_and_value(raw_field, notable_data, expected_field, expected_value, mocker):
@@ -1363,6 +1367,14 @@ def test_get_notable_field_and_value(raw_field, notable_data, expected_field, ex
             'search countryA="test\\country" countryB=""',
         ),
         ({"test": "test_user"}, "search countryA=\\$this is a test\\$", {}, False, "search countryA=\\$this is a test\\$"),
+        # A field whose name is a substring of the queried field must resolve to the correct field
+        (
+            {"src": "host1", "src_ip": "1.2.3.4"},
+            "search src_ip=$src_ip$",
+            {},
+            False,
+            'search src_ip="1.2.3.4"',
+        ),
     ],
     ids=[
         "search query fields in notables data and raw data",
@@ -1375,6 +1387,7 @@ def test_get_notable_field_and_value(raw_field, notable_data, expected_field, ex
         "search query with a user field that is surrounded by quotation marks and contains a backslash",
         "search query fields in notable data more than one value, with one empty value",
         "search query with $ as part of the search - no need to replace",
+        "search query with a field name that is a substring of another field",
     ],
 )
 def test_build_drilldown_search(notable_data, search, raw, is_query_name, expected_search, mocker):
@@ -1880,6 +1893,94 @@ def test_to_incident_notable_enrichments_status(enrichments, enrichment_type, ex
     notable.to_incident(mapper, "comment_tag_to_splunk", "comment_tag_from_splunk")
 
     assert notable.data[splunk.ENRICHMENT_TYPE_TO_ENRICHMENT_STATUS[enrichment_type]] == expected_stauts_result
+
+
+@pytest.mark.parametrize(
+    "spl_search, expected",
+    [
+        # Single backslashes inside a field="value" filter must be doubled
+        (
+            'eventcode IN (1, 2) field_a="\\foo\\bar\\baz" | head 1',
+            'eventcode IN (1, 2) field_a="\\\\foo\\\\bar\\\\baz" | head 1',
+        ),
+        # Already-doubled values are left unchanged (idempotent)
+        ('field_a="\\\\foo\\\\bar"', 'field_a="\\\\foo\\\\bar"'),
+        # Values without backslashes are untouched
+        ('field_a="10.0.0.1" field_b="abc"', 'field_a="10.0.0.1" field_b="abc"'),
+        # rex / free-text quoted strings (not preceded by '=') must NOT be modified
+        (
+            'index=x | rex field=field_a "value: (?<value>.*)"',
+            'index=x | rex field=field_a "value: (?<value>.*)"',
+        ),
+        # Regex literals inside SPL function calls (quote follows '(' or ',', NOT a field token)
+        # must NOT be re-escaped.
+        (
+            '| eval field_a=replace(field_a,"(\\\\)","\\\\\\\\")',
+            '| eval field_a=replace(field_a,"(\\\\)","\\\\\\\\")',
+        ),
+        # Multiple genuine field="value" filters in one query are all doubled
+        (
+            'field_a="\\foo\\bar" field_b="\\\\baz\\\\qux"',
+            'field_a="\\\\foo\\\\bar" field_b="\\\\baz\\\\qux"',
+        ),
+        # A dotted field name is still treated as a field filter
+        (
+            'parent.child="\\foo\\bar"',
+            'parent.child="\\\\foo\\\\bar"',
+        ),
+    ],
+    ids=[
+        "single backslashes are doubled",
+        "already-doubled backslashes are unchanged",
+        "no backslashes are untouched",
+        "rex regex quoted string is not modified",
+        "eval/replace regex literal is not over-escaped",
+        "multiple field filters are all doubled",
+        "dotted field name is treated as a field filter",
+    ],
+)
+def test_escape_backslashes_in_field_filters(spl_search, expected):
+    """
+    Scenario: A drilldown search arrives as JSON; after json.loads, backslashes inside field filter
+    values are collapsed to single backslashes, which Splunk SPL cannot match. We re-escape them.
+
+    Given:
+    - An SPL search with a field="value" filter value containing single backslashes.
+    - An SPL search whose field filter values are already correctly escaped.
+    - An SPL search without backslashes.
+    - An SPL search with a rex/free-text quoted string containing a backslash.
+    - An SPL search with a regex literal inside a function call (eval/replace).
+    - An SPL search with multiple field filters.
+    - An SPL search with a dotted field name.
+
+    When:
+    - escape_backslashes_in_field_filters is called.
+
+    Then:
+    - Backslashes inside genuine field="value" filters are doubled, the operation is idempotent,
+      and rex/free-text quoted strings and regex literals inside function calls are left untouched.
+    """
+    assert splunk.escape_backslashes_in_field_filters(spl_search) == expected
+
+
+def test_parse_drilldown_searches_preserves_backslashes():
+    """
+    Given:
+    - A 'drilldown_searches' JSON payload where a field="value" filter value contains backslashes.
+
+    When:
+    - Running splunk.parse_drilldown_searches.
+
+    Then:
+    - The parsed 'search' keeps the backslashes escaped (doubled) for Splunk SPL.
+    """
+    searches = [
+        '[{"name":"Show events","search":"(index=idx_a OR index=idx_b) '
+        'eventcode IN (1, 2) field_a=\\"\\\\foo\\\\bar\\\\baz\\" '
+        '| head 1","earliest_offset":"1","latest_offset":"2","disabled":false}]'
+    ]
+    parsed = splunk.parse_drilldown_searches(searches)
+    assert parsed[0]["search"] == ("(index=idx_a OR index=idx_b) eventcode IN (1, 2) " 'field_a="\\\\foo\\\\bar\\\\baz" | head 1')
 
 
 def test_parse_drilldown_searches():
@@ -3978,6 +4079,7 @@ def test_parse_fields(fields, expected):
         ),
     ],
 )
+@patch("SplunkPy.VERIFY_CERTIFICATE", True)
 @patch("requests.post")
 @patch("SplunkPy.get_events_from_file")
 @patch("SplunkPy.parse_fields")
@@ -5167,3 +5269,143 @@ def test_splunk_get_indexes_command_failure(mocker):
 
     # Verify errors were logged
     assert error_mock.call_count >= 2  # One for REST failure, one for Direct failure
+
+
+# ========== ResponseSizeValidator Tests ==========
+
+
+def test_response_size_validator_no_warning_below_threshold(mocker):
+    """
+    Given:
+        - Data size below the 20 MB threshold
+    When:
+        - ResponseSizeValidator validates the data
+    Then:
+        - return_results is not called
+        - validated flag is set to True
+    """
+    validator = splunk.ResponseSizeValidator()
+    mock_return_results = mocker.patch("SplunkPy.return_results")
+
+    # Create data below threshold (1 MB) - as list of dicts
+    small_data = [{"data": "x" * (1 * 1024 * 1024)}]
+
+    validator.validate_and_report(small_data)
+
+    mock_return_results.assert_not_called()
+    assert validator.validated is True
+
+
+def test_response_size_validator_warning_above_threshold(mocker):
+    """
+    Given:
+        - Data size above the 20 MB threshold (e.g., 25 MB)
+    When:
+        - ResponseSizeValidator validates the data
+    Then:
+        - return_results is called with warning message
+        - validated flag is set to True
+        - Warning message contains "WARNING" prefix
+    """
+    validator = splunk.ResponseSizeValidator()
+    mock_return_results = mocker.patch("SplunkPy.return_results")
+
+    # Create data above threshold (25 MB) - as list of dicts
+    large_data = [{"data": "x" * (25 * 1024 * 1024)}]
+
+    validator.validate_and_report(large_data)
+
+    mock_return_results.assert_called_once()
+    warning = mock_return_results.call_args[0][0]
+    assert "WARNING" in warning
+    assert "25." in warning  # Size will be around 25 MB
+    assert "20" in warning
+    assert "normal usage size" in warning
+    assert validator.validated is True
+
+
+def test_response_size_validator_warning_shown_only_once(mocker):
+    """
+    Given:
+        - Multiple batches of data, all above threshold
+    When:
+        - ResponseSizeValidator validates each batch
+    Then:
+        - return_results is called only on the first validation
+        - Subsequent validations don't call return_results
+        - validated flag remains True after first validation
+    """
+    validator = splunk.ResponseSizeValidator()
+    mock_return_results = mocker.patch("SplunkPy.return_results")
+
+    # Create data above threshold (25 MB) - as list of dicts
+    large_data = [{"data": "x" * (25 * 1024 * 1024)}]
+
+    # First validation should call return_results
+    validator.validate_and_report(large_data)
+    assert mock_return_results.call_count == 1
+    assert validator.validated is True
+
+    # Second validation should not call return_results (already validated)
+    validator.validate_and_report(large_data)
+    assert mock_return_results.call_count == 1
+    assert validator.validated is True
+
+    # Third validation should also not call return_results
+    validator.validate_and_report(large_data)
+    assert mock_return_results.call_count == 1
+    assert validator.validated is True
+
+
+def test_response_size_validator_just_above_threshold(mocker):
+    """
+    Given:
+        - Data size just above the 20 MB threshold (20 MB + 1 byte)
+    When:
+        - ResponseSizeValidator validates the data
+    Then:
+        - return_results is called with warning message
+        - validated flag is set to True
+    """
+    validator = splunk.ResponseSizeValidator()
+    mock_return_results = mocker.patch("SplunkPy.return_results")
+
+    # Create data just above threshold (20 MB + 1 byte) - as list of dicts
+    just_above_data = [{"data": "x" * (20 * 1024 * 1024 + 1)}]
+
+    validator.validate_and_report(just_above_data)
+
+    mock_return_results.assert_called_once()
+    warning = mock_return_results.call_args[0][0]
+    assert "WARNING" in warning
+    assert validator.validated is True
+
+
+def test_response_size_validator_message_format(mocker):
+    """
+    Given:
+        - Data size of 30 MB (above threshold)
+    When:
+        - ResponseSizeValidator validates the data
+    Then:
+        - Warning message contains all required elements:
+          * "WARNING" prefix
+          * Actual size in MB
+          * Threshold size in MB
+          * "normal usage size" phrase
+    """
+    validator = splunk.ResponseSizeValidator()
+    mock_return_results = mocker.patch("SplunkPy.return_results")
+
+    # Create data of 30 MB - as list of dicts
+    data_30mb = [{"data": "x" * (30 * 1024 * 1024)}]
+
+    validator.validate_and_report(data_30mb)
+
+    mock_return_results.assert_called_once()
+    warning = mock_return_results.call_args[0][0]
+    assert warning.startswith("WARNING:")
+    assert "30." in warning  # Size will be around 30 MB
+    assert "20" in warning
+    assert "normal usage size" in warning
+    assert "exceeds" in warning.lower()
